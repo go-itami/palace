@@ -1,0 +1,87 @@
+name: EM cavity verification
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cavity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      OMP_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential gfortran cmake openmpi-bin libopenmpi-dev libopenblas-serial-dev liblapack-dev libunwind-dev zlib1g-dev pkg-config
+      - name: Configure CPU FEM solver
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install" -DPALACE_WITH_LIBXSMM=OFF -DPALACE_WITH_MAGMA=OFF -DPALACE_WITH_SUNDIALS=OFF
+      - name: Build solver
+        run: cmake --build build --parallel 2
+      - name: Prepare cavity verification
+        run: |
+          python3 - <<'PY'
+          import json, re, pathlib, hashlib, subprocess
+          p = pathlib.Path('examples/cylinder')
+          raw = re.sub(r'//[^\n]*', '', (p/'cavity_pec.json').read_text())
+          cfg = json.loads(re.sub(r',\s*([}\]])', r'\1', raw))
+          for order in (2, 4):
+              cfg['Problem']['Output'] = f'postpro/verification_p{order}'
+              cfg['Solver']['Order'] = order
+              cfg['Solver']['Eigenmode']['N'] = 3
+              cfg['Solver']['Eigenmode']['Save'] = 3
+              (p/f'verification_p{order}.json').write_text(json.dumps(cfg, indent=2))
+          mesh = p/cfg['Model']['Mesh']
+          meta = dict(solver='Palace', commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(), mesh_sha256=hashlib.sha256(mesh.read_bytes()).hexdigest(), radius_m=0.0274,height_m=0.0548,epsilon_r=2.08,loss_tangent=0.0004,hfss_compared=False)
+          (p/'verification_metadata.json').write_text(json.dumps(meta,indent=2))
+          PY
+      - name: Solve 3D Maxwell eigenmodes
+        working-directory: examples/cylinder
+        run: |
+          set -o pipefail
+          "$GITHUB_WORKSPACE/install/bin/palace" -np 2 verification_p2.json 2>&1 | tee verification_p2.log
+          "$GITHUB_WORKSPACE/install/bin/palace" -np 2 verification_p4.json 2>&1 | tee verification_p4.log
+      - name: Validate frequency and Q
+        working-directory: examples/cylinder
+        run: |
+          python3 - <<'PY'
+          import csv,json,math,os,pathlib
+          results=[]
+          for order in (2,4):
+              with open(f'postpro/verification_p{order}/eig.csv') as f:
+                  rows=list(csv.reader(f))
+              header=[s.strip() for s in rows[0]]
+              fi=next(i for i,s in enumerate(header) if 'Re{f}' in s)
+              qi=header.index('Q')
+              data=sorted((float(r[fi]),float(r[qi])) for r in rows[1:] if r)
+              assert len(data)==3, data
+              for mode,((freq,q),ref) in enumerate(zip(data,[2.903605,2.922212,2.922212]),1):
+                  err=abs(freq/ref-1)
+                  results.append(dict(order=order,mode=mode,frequency_GHz=freq,analytic_GHz=ref,relative_error=err,Q=q))
+                  assert math.isfinite(freq) and math.isfinite(q)
+                  assert err<0.01 and abs(q/2500-1)<0.01, results[-1]
+          pathlib.Path('verification_results.json').write_text(json.dumps(results,indent=2))
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
+              print('# 3D FEM cavity verification',file=f)
+              print('Frequency and Q errors below 1%. HFSS comparison not performed.',file=f)
+              print('',file=f)
+              print('|Order|Mode|FEM GHz|Analytic GHz|Error %|Q|',file=f)
+              print('|---|---|---|---|---|---|',file=f)
+              for r in results:
+                  print('|{order}|{mode}|{frequency_GHz:.7f}|{analytic_GHz:.7f}|{err:.5f}|{Q:.3f}|'.format(**r,err=100*r['relative_error']),file=f)
+          print(json.dumps(results,indent=2))
+          PY
+      - name: Save fields and validation data
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cavity-verification
+          retention-days: 30
+          path: |
+            examples/cylinder/postpro/verification_*/
+            examples/cylinder/verification_*
+            build/CMakeCache.txt
