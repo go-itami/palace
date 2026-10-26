@@ -38,7 +38,7 @@ AWSアカウントや手元PCの起動は不要です。計算はGitHubのUbuntu
 - `verification_metadata.json`: ソースcommit、メッシュSHA-256、寸法、材料、HFSS比較の有無。
 - `CMakeCache.txt`: ビルド設定。
 
-ParaViewでは出力ディレクトリ内の `.pvd` を開き、Applyを押して電界のMagnitudeや各成分を選択します。固有モードの振幅は規格化されており、実際の励振電力に対応する絶対電界ではありません。
+ParaView 5.12.1以降では出力ディレクトリ内の `.pvd` を開き、Applyを押して電界のMagnitudeや各成分を選択します。固有モードの振幅は規格化されており、実際の励振電力に対応する絶対電界ではありません。
 
 ## ローカルでビルドして実行（Ubuntu 24.04 / WSL2）
 
@@ -55,6 +55,16 @@ cd examples/cylinder
 ```
 
 このコマンドは上流の15モード・次数4の例を実行します。専用ワークフローと同じ3モードの検証を再現するには、ダウンロードした `verification_p2.json` と `verification_p4.json` をこのディレクトリに置き、入力ファイル名を置き換えて実行してください。ビルド済みバイナリはOS・CPU・MPIに依存します。
+
+## ダウンロードした結果の再検証
+
+Python標準ライブラリだけで実行できます。次のパスを展開済みアーティファクト内の実ファイルに置き換えてください。
+
+```bash
+python3 scripts/verify_cavity.py path/to/verification_p2/eig.csv path/to/verification_p4/eig.csv --output report.json
+```
+
+終了コードは0=合格、1=許容誤差超過、2=入力異常です。モード不足、NaN、非正の周波数/Qも検出します。このスクリプトは上流の参照CSVと異常入力で動作確認済みです。実際の解析の合否は各Actions実行結果で確認してください。
 
 ## HFSS比較とAI高速化への次段階
 
