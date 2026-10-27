@@ -1,0 +1,50 @@
+[
+  {
+    "order": 2,
+    "mode": 1,
+    "frequency_GHz": 2.905076672382,
+    "analytic_GHz": 2.903605,
+    "relative_error": 0.0005068431766717119,
+    "Q": 2500.000138966
+  },
+  {
+    "order": 2,
+    "mode": 2,
+    "frequency_GHz": 2.92660222795,
+    "analytic_GHz": 2.922212,
+    "relative_error": 0.0015023646299447968,
+    "Q": 2500.00015225
+  },
+  {
+    "order": 2,
+    "mode": 3,
+    "frequency_GHz": 2.92660222803,
+    "analytic_GHz": 2.922212,
+    "relative_error": 0.0015023646573213423,
+    "Q": 2500.00019009
+  },
+  {
+    "order": 4,
+    "mode": 1,
+    "frequency_GHz": 2.90476961877,
+    "analytic_GHz": 2.903605,
+    "relative_error": 0.00040109407787891627,
+    "Q": 2500.000146116
+  },
+  {
+    "order": 4,
+    "mode": 2,
+    "frequency_GHz": 2.922855211082,
+    "analytic_GHz": 2.922212,
+    "relative_error": 0.000220111026167924,
+    "Q": 2500.000153524
+  },
+  {
+    "order": 4,
+    "mode": 3,
+    "frequency_GHz": 2.922855211088,
+    "analytic_GHz": 2.922212,
+    "relative_error": 0.00022011102822117046,
+    "Q": 2500.000152656
+  }
+]
