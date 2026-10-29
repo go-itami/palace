@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>Palace Studio · 3D Electromagnetic Design</title>
+  <link rel="icon" href="/favicon.svg" />
+  <link rel="stylesheet" href="/style.css" />
+  <script src="/app.js" defer></script>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand"><div class="brandmark"><svg width="25" height="25" viewBox="0 0 28 28" fill="none"><path d="M4 21.5 14 4l10 17.5H4Z" stroke="#67E3FA" stroke-width="1.75"/><path d="M8 21.5 14 11l6 10.5" stroke="#67E3FA" stroke-width="1.5"/><circle cx="14" cy="15" r="2" fill="#67E3FA"/></svg></div><div class="brandtype">PALACE<span>STUDIO</span><small>3D ELECTROMAGNETICS</small></div></div>
+    <div class="top-divider"></div>
+    <div class="file-name"><span class="faint">PROJECT /</span> <span id="projectName" contenteditable="true" spellcheck="false" title="Click to rename">Cylindrical Cavity</span><span class="dirty-indicator" id="dirtyIndicator"></span></div>
+    <div class="header-spacer"></div>
+    <div class="connection"><span class="status-light" id="backendLight"></span><span id="backendText">Checking backend…</span></div>
+    <button class="btn ghost compact" id="openBtn" title="Open saved scene JSON">↥ <span>Open</span></button>
+    <button class="btn ghost compact" id="saveBtn" title="Save scene JSON">⤓ <span>Save</span></button>
+    <button class="btn primary compact" id="exportBtn">↧ <span>Export Input</span></button>
+  </header>
+
+  <nav class="ribbon">
+    <div class="ribbon-tabs"><button class="ribbon-tab active" data-tab="model">Modeler</button><button class="ribbon-tab" data-tab="analysis">Analysis</button><button class="ribbon-tab" data-tab="results">Results</button></div>
+    <div class="ribbon-tools" id="modelRibbon">
+      <div class="toolgroup"><span class="group-label">CREATE</span>
+        <button class="tool" data-add="box" title="Add a solid box"><span class="tool-ico blue">▣</span><span>Box</span></button>
+        <button class="tool" data-add="cylinder" title="Add a cylinder"><span class="tool-ico cyan">◉</span><span>Cylinder</span></button>
+        <button class="tool" data-add="sphere" title="Add a sphere"><span class="tool-ico purple">●</span><span>Sphere</span></button>
+      </div>
+      <div class="toolgroup"><span class="group-label">EDIT</span>
+        <button class="tool" id="duplicateBtn" title="Duplicate selected solid (Ctrl+D)"><span class="tool-ico">▤</span><span>Duplicate</span></button>
+        <button class="tool" id="deleteBtn" title="Delete selected solid (Delete)"><span class="tool-ico">⌫</span><span>Delete</span></button>
+        <button class="tool" id="resetBtn" title="Reset to sample cavity"><span class="tool-ico">↺</span><span>Sample</span></button>
+      </div>
+      <div class="toolgroup"><span class="group-label">VIEW</span>
+        <button class="tool" data-view="iso"><span class="tool-ico">⬡</span><span>Isometric</span></button>
+        <button class="tool" data-view="top"><span class="tool-ico">⊞</span><span>Top</span></button>
+        <button class="tool" data-view="front"><span class="tool-ico">⊟</span><span>Front</span></button>
+        <button class="tool" id="fitBtn"><span class="tool-ico">⛶</span><span>Fit</span></button>
+      </div>
+      <div class="toolgroup"><span class="group-label">DISPLAY</span>
+        <button class="tool toggle on" id="gridBtn"><span class="tool-ico">▦</span><span>Grid</span></button>
+        <button class="tool toggle" id="wireBtn"><span class="tool-ico">◇</span><span>Wireframe</span></button>
+      </div>
+    </div>
+    <div class="ribbon-tools hidden" id="analysisRibbon">
+      <div class="toolgroup"><span class="group-label">EIGENMODE</span>
+        <button class="tool" id="analysisFocusBtn"><span class="tool-ico cyan">⚙</span><span>Setup</span></button>
+        <button class="tool" id="runRibbonBtn"><span class="tool-ico green">▶</span><span>Run solver</span></button>
+        <button class="tool" id="exportRibbonBtn"><span class="tool-ico">⬇</span><span>Export inputs</span></button>
+      </div>
+      <div class="ribbon-hint">Eigenmode · Gmsh 3D mesh · Palace high-order FEM <span class="experimental">MVP</span></div>
+    </div>
+    <div class="ribbon-tools hidden" id="resultsRibbon">
+      <div class="toolgroup"><span class="group-label">DATA</span>
+        <button class="tool" id="importResultsBtn"><span class="tool-ico cyan">⇧</span><span>Load eig.csv</span></button>
+        <button class="tool" id="loadBenchmarkBtn"><span class="tool-ico purple">▥</span><span>Benchmark</span></button>
+        <button class="tool" id="downloadJobBtn"><span class="tool-ico">⬇</span><span>Download run</span></button>
+      </div>
+      <div class="ribbon-hint">Results are displayed only after importing or completing a genuine Palace run.</div>
+    </div>
+  </nav>
+
+  <div class="workspace">
+    <aside class="sidebar left-sidebar">
+      <div class="panel-heading"><span>PROJECT MANAGER</span><button class="mini-ico" id="collapseTreeBtn" title="Collapse sections">−</button></div>
+      <div class="tree" id="tree">
+        <div class="tree-parent level0"><span class="tree-caret">▾</span><span class="tree-icon project-symbol">⬡</span><span id="treeProjectName">Cylindrical Cavity</span></div>
+        <div class="tree-parent level1"><span class="tree-caret">▾</span><span class="tree-icon">▱</span><span>Model</span><span class="count" id="objectCount">1</span></div>
+        <div id="objectTree"></div>
+        <div class="tree-parent level1 clickable" data-selection="materials"><span class="tree-caret">▸</span><span class="tree-icon cyan-text">◈</span><span>Materials</span></div>
+        <div class="tree-parent level1 clickable" data-selection="boundary"><span class="tree-caret">▸</span><span class="tree-icon orange-text">▧</span><span>Boundaries</span></div>
+        <div class="tree-parent level1 clickable" data-selection="analysis"><span class="tree-caret">▸</span><span class="tree-icon purple-text">◎</span><span>Analysis</span></div>
+        <div class="tree-sub level2 clickable" data-selection="analysis"><span class="tree-icon cyan-text">◌</span> Setup1 : Eigenmode</div>
+        <div class="tree-parent level1 clickable" data-selection="results"><span class="tree-caret">▸</span><span class="tree-icon green-text">▥</span><span>Results</span></div>
+      </div>
+      <div class="side-separator"></div>
+      <div class="panel-heading small-heading">DESIGN OVERVIEW</div>
+      <div class="design-stats">
+        <div class="stat-row"><span>Solver engine</span><strong>Palace FEM</strong></div>
+        <div class="stat-row"><span>Analysis</span><strong id="overviewAnalysis">Eigenmode</strong></div>
+        <div class="stat-row"><span>Length unit</span><strong id="overviewUnit">mm</strong></div>
+        <div class="stat-row"><span>3D volumes</span><strong id="overviewBodies">01</strong></div>
+        <div class="stat-row"><span>Boundary</span><strong id="overviewBoundary">PEC</strong></div>
+      </div>
+      <div class="sidebar-footer"><span class="pill">LOCAL FIRST</span> Project files stay on your machine</div>
+    </aside>
+
+    <main class="center">
+      <div class="view-tabbar"><div class="view-tab active"><span class="view-tab-icon">⬡</span> 3D Modeler <span class="view-tab-close">×</span></div><div class="view-tab faint-tab" id="fileViewTab">Design1</div><div class="view-spacer"></div><div class="view-indicator">Cartesian <span>·</span> <span id="viewUnit">mm</span></div></div>
+      <div class="viewport" id="viewport">
+        <canvas id="sceneCanvas" tabindex="0" aria-label="3D CAD viewport. Drag to orbit, scroll to zoom, click to select a solid."></canvas>
+        <div class="viewport-info"><span class="eyebrow">3D GEOMETRY</span><strong id="viewportTitle">Cylinder1</strong><span id="viewportSub">Teflon · Solid Body</span></div>
+        <div class="view-actions"><button class="viewport-btn" id="orbitHintBtn" title="Drag orbit · Shift+drag pan · Wheel zoom">◉</button><button class="viewport-btn" id="viewResetBtn" title="Reset isometric view">⤢</button></div>
+        <div class="axis-widget" id="axisWidget"><span class="axis-x">X</span><span class="axis-y">Y</span><span class="axis-z">Z</span></div>
+        <div class="view-bottom-left"><span class="dot"></span> Perspective <span class="sep">/</span> <span id="viewModeText">Shaded with edges</span></div>
+        <div class="view-controls"><span>ORBIT</span> Drag <span class="sep">·</span> <span>PAN</span> Shift + drag <span class="sep">·</span> <span>ZOOM</span> Scroll</div>
+      </div>
+      <div class="lower-panel">
+        <div class="lower-tabs"><button class="lower-tab active" data-lower="messages">MESSAGES <span class="num" id="messageCount">3</span></button><button class="lower-tab" data-lower="results">EIGENMODES <span class="num" id="resultsCount">0</span></button><button class="lower-tab" data-lower="json">PALACE CONFIG</button><div class="lower-spacer"></div><span id="runStatus" class="run-status">READY</span><button id="clearLogBtn" class="mini-ico" title="Clear messages">⌫</button></div>
+        <div class="lower-content" id="messagesPanel"><div class="log-lines" id="logLines"></div></div>
+        <div class="lower-content hidden" id="resultsPanel"><div id="resultsContent" class="result-placeholder"><div class="placeholder-symbol">◎</div><strong>No simulation results yet</strong><p>Run a Palace job or load an existing <code>eig.csv</code> from your verified cylinder benchmark.</p><button class="btn outlined" id="emptyImportBtn">Load eig.csv</button></div></div>
+        <div class="lower-content hidden config-panel" id="jsonPanel"><pre id="configPreview">Run an export to preview your validated Palace config.</pre></div>
+      </div>
+    </main>
+
+    <aside class="sidebar inspector">
+      <div class="panel-heading"><span>PROPERTIES</span><span class="inspector-tag">DESIGN1</span></div>
+      <div class="inspector-scroll" id="inspectorContent"></div>
+      <div class="inspector-bottom"><button class="btn outlined full" id="validateBtn">✓ Validate model</button><button class="btn accent full" id="runBtn">▶ Run simulation</button><p id="runNote" class="run-note">Local execution requires Gmsh and Palace.</p></div>
+    </aside>
+  </div>
+
+  <footer class="statusbar"><div><span class="status-square"></span><span id="footerStatus">Ready · No unsaved changes</span></div><div class="footer-right"><span>FEM ORDER <strong id="footerOrder">4</strong></span><span>GEOMETRY <strong id="footerShape">3D</strong></span><span class="version">PALACE STUDIO v0.1</span></div></footer>
+</div>
+<input type="file" id="openFileInput" accept=".json,application/json" hidden />
+<input type="file" id="resultFileInput" accept=".csv,text/csv" hidden />
+<div class="toast-stack" id="toasts" aria-live="polite"></div>
+</body>
+</html>
